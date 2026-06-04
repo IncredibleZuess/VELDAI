@@ -9,7 +9,6 @@ Description-Content-Type: text/markdown
 Requires-Dist: numpy
 Requires-Dist: gymnasium
 Requires-Dist: torch
-Requires-Dist: pygame
 Requires-Dist: pytest
 Requires-Dist: stable-baselines3
 Requires-Dist: tensorboard

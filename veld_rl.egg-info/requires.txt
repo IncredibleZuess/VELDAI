@@ -1,7 +1,6 @@
 numpy
 gymnasium
 torch
-pygame
 pytest
 stable-baselines3
 tensorboard
