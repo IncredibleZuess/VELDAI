@@ -44,9 +44,37 @@ def test_human_vs_ppo_requires_checkpoint():
         GuiController(mode="human_vs_ppo", seed=42)
 
 
+def test_ppo_vs_mcts_requires_checkpoint():
+    with pytest.raises(ValueError, match="checkpoint"):
+        GuiController(mode="ppo_vs_mcts", seed=42)
+
+
+def test_human_vs_ppo_uses_checkpoint(monkeypatch, tmp_path):
+    checkpoint_path = tmp_path / "model.pt"
+    checkpoint_path.write_bytes(b"dummy")
+
+    class DummyPPO:
+        def __init__(self, checkpoint):
+            self.checkpoint = checkpoint
+
+        def choose_action(self, state):
+            return None
+
+    monkeypatch.setattr("veld.gui.input.PPOCheckpointAgent", DummyPPO)
+    controller = GuiController(mode="human_vs_ppo", seed=42, checkpoint=checkpoint_path)
+    assert isinstance(controller.agent_b, DummyPPO)
+    assert controller.agent_b.checkpoint == checkpoint_path
+
+
 def test_ppo_vs_mcts_uses_expected_agents(monkeypatch):
     fake_ppo = RandomAgent(seed=99)
     monkeypatch.setattr(GuiController, "_build_ppo_agent", lambda self: fake_ppo)
     controller = GuiController(mode="ppo_vs_mcts", seed=42)
     assert controller.agent_a is fake_ppo
     assert isinstance(controller.agent_b, MCTSAgent)
+
+
+def test_ppo_watch_rejects_invalid_watch_opponent(monkeypatch):
+    monkeypatch.setattr(GuiController, "_build_ppo_agent", lambda self: RandomAgent(seed=7))
+    with pytest.raises(ValueError, match="Invalid watch opponent type"):
+        GuiController(mode="ppo_watch", seed=42, watch_opponent_type="bad")

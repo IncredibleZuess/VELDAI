@@ -5,7 +5,7 @@ from pathlib import Path
 
 from veld.agents import MCTSAgent, PPOCheckpointAgent
 from veld.core.board import Hex
-from veld.core.game import Game, PlacementAction, RandomAgent, get_legal_placements
+from veld.core.game import Agent, Game, PlacementAction, RandomAgent, get_legal_placements
 from veld.core.pieces import Player
 from veld.core.rules import Action, get_all_legal_actions
 
@@ -19,20 +19,21 @@ AI_MODES = {
     "ppo_vs_mcts": {Player.RANGER_A, Player.RANGER_B},
     "ppo_watch": {Player.RANGER_A, Player.RANGER_B},
 }
+AUTO_STEP_MODES = {"random_vs_random", "ppo_vs_mcts", "ppo_watch"}
 
 
 @dataclass
 class GuiController:
     mode: str = "human_vs_human"
     seed: int | None = None
-    agent: str = "random"
+    watch_opponent_type: str = "random"
     checkpoint: str | Path | None = None
     game: Game = field(init=False)
     selected_piece_id: int | None = None
     legal_actions: list[Action | PlacementAction] = field(default_factory=list)
     autoplay: bool = False
-    agent_a: object = field(init=False)
-    agent_b: object = field(init=False)
+    agent_a: Agent = field(init=False)
+    agent_b: Agent = field(init=False)
 
     def __post_init__(self) -> None:
         self.game = Game(seed=self.seed)
@@ -115,15 +116,21 @@ class GuiController:
 
     def _build_ppo_agent(self) -> PPOCheckpointAgent:
         if self.checkpoint is None:
-            raise ValueError("A PPO checkpoint is required for this mode.")
+            raise ValueError(
+                f"A PPO checkpoint is required for mode: {self.mode}. "
+                "Provide one using the --checkpoint argument."
+            )
         return PPOCheckpointAgent(self.checkpoint)
 
-    def _build_watch_opponent(self):
-        if self.agent == "mcts":
+    def _build_watch_opponent(self) -> Agent:
+        if self.watch_opponent_type == "mcts":
             return MCTSAgent(seed=None if self.seed is None else self.seed + 1)
-        if self.agent == "ppo":
-            return self._build_ppo_agent()
-        return RandomAgent(seed=None if self.seed is None else self.seed + 1)
+        if self.watch_opponent_type == "random":
+            return RandomAgent(seed=None if self.seed is None else self.seed + 1)
+        raise ValueError(
+            "Invalid watch opponent type. "
+            f"Expected one of random|mcts, got: {self.watch_opponent_type}"
+        )
 
     def step_ai(self) -> bool:
         if self.state.done or not self.current_player_is_ai():
@@ -136,3 +143,7 @@ class GuiController:
         self.selected_piece_id = None
         self.refresh_legal_actions()
         return True
+
+    @property
+    def auto_step_enabled(self) -> bool:
+        return self.autoplay or self.mode in AUTO_STEP_MODES

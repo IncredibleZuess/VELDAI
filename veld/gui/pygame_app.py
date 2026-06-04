@@ -25,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=800)
-    parser.add_argument("--agent", default="random", choices=["random", "mcts", "ppo"])
+    parser.add_argument("--agent", default="random", choices=["random", "mcts"])
     parser.add_argument("--checkpoint", default=None)
     return parser
 
@@ -35,7 +35,12 @@ def run_app(args: argparse.Namespace) -> None:
     screen = pygame.display.set_mode((args.width, args.height))
     pygame.display.set_caption("VELD")
     clock = pygame.time.Clock()
-    controller = GuiController(mode=args.mode, seed=args.seed, agent=args.agent, checkpoint=args.checkpoint)
+    controller = GuiController(
+        mode=args.mode,
+        seed=args.seed,
+        watch_opponent_type=args.agent,
+        checkpoint=args.checkpoint,
+    )
     renderer = PygameRenderer(args.width, args.height)
     running = True
 
@@ -65,7 +70,7 @@ def run_app(args: argparse.Namespace) -> None:
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     renderer.save_screenshot(screen, Path("screenshots") / f"veld_{timestamp}.png")
 
-        if controller.autoplay or controller.mode in {"random_vs_random", "ppo_vs_mcts", "ppo_watch"}:
+        if controller.auto_step_enabled:
             controller.step_ai()
 
         renderer.draw(
