@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "veld-rl"
+version = "0.1.0"
+description = "VELD board game engine, Pygame GUI, Gymnasium environment, and RL training tools."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "VELD Contributors" }]
+dependencies = [
+  "numpy",
+  "gymnasium",
+  "torch",
+  "pytest",
+  "stable-baselines3",
+  "tensorboard",
+  "pygame-ce>=2.5.7",
+]
+
+[project.scripts]
+veld-gui = "veld.gui.pygame_app:main"
+veld-train-ppo = "veld.train.ppo_train:main"
+
+[tool.setuptools.packages.find]
+include = ["veld*"]
+
+[tool.pytest.ini_options]
+testpaths = ["veld/tests"]

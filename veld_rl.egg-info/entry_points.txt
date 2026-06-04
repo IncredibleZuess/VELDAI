@@ -1,0 +1,3 @@
+[console_scripts]
+veld-gui = veld.gui.pygame_app:main
+veld-train-ppo = veld.train.ppo_train:main

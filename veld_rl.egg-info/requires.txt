@@ -1,0 +1,8 @@
+numpy
+gymnasium
+torch
+pygame
+pytest
+stable-baselines3
+tensorboard
+pygame-ce>=2.5.7
