@@ -1,4 +1,8 @@
+import pytest
+
+from veld.agents.mcts import MCTSAgent
 from veld.core.board import Hex
+from veld.core.game import RandomAgent
 from veld.gui.input import GuiController
 from veld.gui.renderer import HexLayout
 
@@ -33,3 +37,16 @@ def test_click_on_occupied_hex_selects_piece_after_setup():
     changed = controller.handle_hex_click(own_piece.position)
     assert not changed
     assert controller.selected_piece_id == own_piece_id
+
+
+def test_human_vs_ppo_requires_checkpoint():
+    with pytest.raises(ValueError, match="checkpoint"):
+        GuiController(mode="human_vs_ppo", seed=42)
+
+
+def test_ppo_vs_mcts_uses_expected_agents(monkeypatch):
+    fake_ppo = RandomAgent(seed=99)
+    monkeypatch.setattr(GuiController, "_build_ppo_agent", lambda self: fake_ppo)
+    controller = GuiController(mode="ppo_vs_mcts", seed=42)
+    assert controller.agent_a is fake_ppo
+    assert isinstance(controller.agent_b, MCTSAgent)

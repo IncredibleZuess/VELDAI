@@ -18,6 +18,8 @@ def build_parser() -> argparse.ArgumentParser:
         "human_vs_random",
         "random_vs_random",
         "human_vs_mcts",
+        "human_vs_ppo",
+        "ppo_vs_mcts",
         "ppo_watch",
     ])
     parser.add_argument("--seed", type=int, default=None)
@@ -33,7 +35,7 @@ def run_app(args: argparse.Namespace) -> None:
     screen = pygame.display.set_mode((args.width, args.height))
     pygame.display.set_caption("VELD")
     clock = pygame.time.Clock()
-    controller = GuiController(mode=args.mode, seed=args.seed)
+    controller = GuiController(mode=args.mode, seed=args.seed, agent=args.agent, checkpoint=args.checkpoint)
     renderer = PygameRenderer(args.width, args.height)
     running = True
 
@@ -63,7 +65,7 @@ def run_app(args: argparse.Namespace) -> None:
                     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                     renderer.save_screenshot(screen, Path("screenshots") / f"veld_{timestamp}.png")
 
-        if controller.autoplay or controller.mode == "random_vs_random":
+        if controller.autoplay or controller.mode in {"random_vs_random", "ppo_vs_mcts", "ppo_watch"}:
             controller.step_ai()
 
         renderer.draw(

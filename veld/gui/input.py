@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
+from veld.agents import MCTSAgent, PPOCheckpointAgent
 from veld.core.board import Hex
 from veld.core.game import Game, PlacementAction, RandomAgent, get_legal_placements
 from veld.core.pieces import Player
@@ -13,6 +15,8 @@ AI_MODES = {
     "human_vs_random": {Player.RANGER_B},
     "random_vs_random": {Player.RANGER_A, Player.RANGER_B},
     "human_vs_mcts": {Player.RANGER_B},
+    "human_vs_ppo": {Player.RANGER_B},
+    "ppo_vs_mcts": {Player.RANGER_A, Player.RANGER_B},
     "ppo_watch": {Player.RANGER_A, Player.RANGER_B},
 }
 
@@ -21,17 +25,29 @@ AI_MODES = {
 class GuiController:
     mode: str = "human_vs_human"
     seed: int | None = None
+    agent: str = "random"
+    checkpoint: str | Path | None = None
     game: Game = field(init=False)
     selected_piece_id: int | None = None
     legal_actions: list[Action | PlacementAction] = field(default_factory=list)
     autoplay: bool = False
-    random_agent_a: RandomAgent = field(init=False)
-    random_agent_b: RandomAgent = field(init=False)
+    agent_a: object = field(init=False)
+    agent_b: object = field(init=False)
 
     def __post_init__(self) -> None:
         self.game = Game(seed=self.seed)
-        self.random_agent_a = RandomAgent(seed=self.seed)
-        self.random_agent_b = RandomAgent(seed=None if self.seed is None else self.seed + 1)
+        self.agent_a = RandomAgent(seed=self.seed)
+        self.agent_b = RandomAgent(seed=None if self.seed is None else self.seed + 1)
+        if self.mode == "human_vs_mcts":
+            self.agent_b = MCTSAgent(seed=None if self.seed is None else self.seed + 1)
+        elif self.mode == "human_vs_ppo":
+            self.agent_b = self._build_ppo_agent()
+        elif self.mode == "ppo_vs_mcts":
+            self.agent_a = self._build_ppo_agent()
+            self.agent_b = MCTSAgent(seed=None if self.seed is None else self.seed + 1)
+        elif self.mode == "ppo_watch":
+            self.agent_a = self._build_ppo_agent()
+            self.agent_b = self._build_watch_opponent()
         self.refresh_legal_actions()
 
     @property
@@ -94,8 +110,20 @@ class GuiController:
 
     def choose_ai_action(self):
         if self.state.current_player == Player.RANGER_A:
-            return self.random_agent_a.choose_action(self.state)
-        return self.random_agent_b.choose_action(self.state)
+            return self.agent_a.choose_action(self.state)
+        return self.agent_b.choose_action(self.state)
+
+    def _build_ppo_agent(self) -> PPOCheckpointAgent:
+        if self.checkpoint is None:
+            raise ValueError("A PPO checkpoint is required for this mode.")
+        return PPOCheckpointAgent(self.checkpoint)
+
+    def _build_watch_opponent(self):
+        if self.agent == "mcts":
+            return MCTSAgent(seed=None if self.seed is None else self.seed + 1)
+        if self.agent == "ppo":
+            return self._build_ppo_agent()
+        return RandomAgent(seed=None if self.seed is None else self.seed + 1)
 
     def step_ai(self) -> bool:
         if self.state.done or not self.current_player_is_ai():

@@ -33,6 +33,8 @@ pip install -e .
 python scripts/play_random.py
 python scripts/play_gui.py --mode human_vs_human --seed 42
 python scripts/play_gui.py --mode random_vs_random --seed 42
+python scripts/play_gui.py --mode ppo_vs_mcts --checkpoint checkpoints/ppo_step_50000.pt
+python scripts/play_gui.py --mode human_vs_ppo --checkpoint checkpoints/ppo_step_50000.pt
 python scripts/mcts_vs_random.py
 python scripts/train_ppo.py --steps 50000 --batch_size 256
 python scripts/eval.py --checkpoints checkpoints/ --n_games 100
